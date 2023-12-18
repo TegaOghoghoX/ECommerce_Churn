@@ -55,8 +55,11 @@ This allows us to get a view of the intial dataset
 SELECT *
 FROM [AutoSales].[dbo].[ECommerceDataset]
 ```
+![Table Null Values ](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/4c7e92bc-d404-42cd-b07f-cf582912026f)
+
 
 We see there are several columns with NULL values, hence, we need to understand the statistic in these coulumns to know if the AVG would be ideal for imputing NULL values
+
 ```sql 
 SELECT 
     AVG(Tenure) AS Avg_Tenure, 
@@ -113,8 +116,11 @@ SELECT
     ROUND(STDEV(OrderCount),3) AS StdDev_Order_Count
 FROM [AutoSales].[dbo].[ECommerceDataset]
 ```
+![Screenshot 2023-12-17 063645](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/6bc5176b-e1c1-4fe1-8c1c-4dce87373621)
+
 
 From this, we can then impute the AVG into the NULL cells in our dataset without distorting the AVG values for each column 
+
 ```sql 
 UPDATE [AutoSales].[dbo].[ECommerceDataset]
 SET Hourspendonapp = (SELECT AVG(Hourspendonapp) FROM [AutoSales].[dbo].[ECommerceDataset])
@@ -150,12 +156,7 @@ UPDATE [AutoSales].[dbo].[ECommerceDataset]
 SET daysincelastorder = (SELECT AVG(daysincelastorder) FROM [AutoSales].[dbo].[ECommerceDataset])
 WHERE daysincelastorder IS NULL 
 ```
-All NULL values have now been imputed 
-```sql 
-SELECT *
-FROM [AutoSales].[dbo].[ECommerceDataset] 
-```
-We noticed some redundant data in our dataset and needs to be corrected. 
+All NULL values have now been imputed, however, we observed some redundant data in our dataset that needs to be corrected. 
 ```sql 
 SELECT preferredlogindevice 
 FROM [AutoSales].[dbo].[ECommerceDataset]
@@ -195,6 +196,7 @@ WHERE PreferredPaymentMode = 'CC'
 SELECT * 
 FROM [AutoSales].[dbo].[ECommerceDataset]
 ```
+![Complete Table](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/4735ed4b-cd70-405b-8dc4-4d599b630ea6)
 
 Now to answer the questions we highlighted earlier 
 - What is the overall churn rate?
@@ -204,6 +206,7 @@ SELECT COUNT(CustomerID) AS Total_Customers
 	 , ROUND((SUM(CAST(Churn AS float))*100 / COUNT(CustomerID)),2) AS Churn_Rate 
 FROM [AutoSales].[dbo].[ECommerceDataset]
 ```
+![Overall Churn Rate ](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/ceb86dfe-ee29-4102-8d2a-11d20bd6d5d1)
 
 - Which demographic groups exhibit the highest churn rate?
 ```sql
@@ -217,6 +220,7 @@ SELECT Gender
  FROM [AutoSales].[dbo].[ECommerceDataset]
 GROUP BY Gender, MaritalStatus, CityTier;
 ```
+![Demographic Churn](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/9a9aa4e7-aee6-4305-8869-d587fcf6f058)
 
 - Do cashback incentives, paymentmode and complaints affect customer retention?
 ```sql 
@@ -238,7 +242,7 @@ FROM [AutoSales].[dbo].[ECommerceDataset]
 GROUP BY Complain, PreferredPaymentMode
 ORDER BY Churn_Rate DESC;
 
-SELECT TOP 50 CASE WHEN Complain = 1 THEN 'Yes' ELSE 'No' END AS Complain_Made  
+SELECT TOP 25 CASE WHEN Complain = 1 THEN 'Yes' ELSE 'No' END AS Complain_Made  
 	 , PreferedOrderCat
 	 , PreferredPaymentMode
 	 , COUNT(CustomerID) AS Total_Customers
@@ -248,6 +252,9 @@ FROM [AutoSales].[dbo].[ECommerceDataset]
 GROUP BY Complain, PreferedOrderCat, PreferredPaymentMode
 ORDER BY Churn_Rate DESC;
 ```
+![cashback incentive and payment mode](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/b5f27ed6-ec30-4047-89a7-a291e407bab7)
+
+![Top 25 Preferred Order and Payment Mode](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/d17434da-d099-43c6-a4ea-26fdb19a8b00)
 
 -- How long do churned customers spend on the app?
 ```sql 
@@ -257,6 +264,7 @@ FROM [AutoSales].[dbo].[ECommerceDataset]
 GROUP BY Churn 
 ORDER BY Avg_HR_Spent_On_App DESC
 ```
+![Time Spent on App](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/72fd363f-a33a-40dc-9538-428489c47b27)
 
 - How do different preferred device users compare in terms of churn?
 ```sql 
@@ -268,6 +276,7 @@ FROM [AutoSales].[dbo].[ECommerceDataset]
 GROUP BY PreferredLoginDevice
 ORDER BY Churn_Rate DESC
 ```
+![Preferred Device Churn](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/b84c650f-5d05-4d18-a424-d3fcba260d50)
 
 - What is the relationship between Tenure and Churn Rate?
 ```sql 
@@ -275,19 +284,20 @@ SELECT Tenure_Range
 	, SUM(Total_Customers) AS Customer_Total
 	, SUM(Churned_Customers) AS Customer_Churned 
 	, ROUND((SUM(CAST(Churned_Customers AS float))*100 / SUM(Total_Customers)),2) AS Churned_Rate 
-FROM(
-SELECT CASE WHEN CAST(tenure AS INT) <= 6 THEN 'Less than 6 Months'
-            WHEN (CAST(tenure AS INT) BETWEEN 7 AND 12) THEN 'Greater than 6 months, less than 1 Year'
-           	WHEN (CAST(tenure AS INT) BETWEEN 13 AND 24) THEN 'Greater than 1 year, less than 2 Years'
-	   ELSE 'More Than 2 years' END AS Tenure_Range 
-	 , COUNT(DISTINCT CustomerID) AS Total_Customers
-	 , SUM(CAST(Churn AS INT)) AS Churned_Customers 
-FROM [AutoSales].[dbo].[ECommerceDataset] 
-GROUP BY Tenure 
-) AS subquery 
+ FROM(
+	SELECT CASE WHEN CAST(tenure AS INT) <= 6 THEN 'Less than 6 Months'
+	            WHEN (CAST(tenure AS INT) BETWEEN 7 AND 12) THEN 'Greater than 6 months, less than 1 Year'
+	           	WHEN (CAST(tenure AS INT) BETWEEN 13 AND 24) THEN 'Greater than 1 year, less than 2 Years'
+		   ELSE 'More Than 2 years' END AS Tenure_Range 
+		 , COUNT(DISTINCT CustomerID) AS Total_Customers
+		 , SUM(CAST(Churn AS INT)) AS Churned_Customers 
+	FROM [AutoSales].[dbo].[ECommerceDataset] 
+	GROUP BY Tenure 
+ ) AS subquery 
 GROUP BY Tenure_Range
 ORDER BY Churned_Rate DESC
 ```
+![Tenure Churn](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/b9d95423-8d19-4e5b-afaa-963b1eaa6d1f)
 
 - Is there a relationship between the number of devices registered and churn?
 ```sql
@@ -299,6 +309,8 @@ FROM [AutoSales].[dbo].[ECommerceDataset]
 GROUP BY NumberofDeviceRegistered
 ORDER BY Churn_Rate DESC 
 ```
+![Registered Device Churn](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/b2e9d01c-af65-48df-a86d-3d8b09d05cdf)
+
 - How does satisfaction score relate to churn?
 ```sql
 SELECT satisfactionscore
@@ -309,20 +321,18 @@ FROM [AutoSales].[dbo].[ECommerceDataset]
 GROUP BY satisfactionscore
 ORDER BY Churn_Rate DESC
 ```
+![Satisfaction Churn](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/82fc3116-ba3a-4b29-9992-e7237d504921)
 
 - What is the impact of order frequency on churn?
 ```sql
 SELECT OrderCount
-     , CASE WHEN Complain = 1 THEN 'Yes' ELSE 'No' END AS Complain_Made  
      , COUNT(CustomerID) AS Total_Customers
      , SUM(CAST(Churn AS INT)) AS Churned_Customers 
      , ROUND((SUM(CAST(Churn AS float))*100 / COUNT(CustomerID)),2) AS Churn_Rate 
 FROM [AutoSales].[dbo].[ECommerceDataset] 
 GROUP BY OrderCount, Complain
-ORDER BY Complain, Churn_Rate DESC;
-
-SELECT MAX(OrderCount)
-    , MIN(OrderCount)
-FROM [AutoSales].[dbo].[ECommerceDataset] 
+ORDER BY Churn_Rate DESC;
 ```
+![Order Frequency Churn](https://github.com/TegaOghoghoX/ECommerce_Churn/assets/154087927/d46c447d-f760-4151-be40-4e0156820a84)
+
 
